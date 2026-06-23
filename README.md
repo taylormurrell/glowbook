@@ -143,6 +143,10 @@ supabase/
 
 ---
 
+## Developer notes
+
+`CLAUDE.md`, `AGENTS.md`, and `AI_RULES.md` are Claude Code configuration files. They provide context and rules to AI coding assistants working on this project and have no effect on the app itself.
+
 ## License
 
 MIT
