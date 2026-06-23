@@ -3,12 +3,13 @@ import { createClient } from '@/lib/supabase/server'
 import OutfitCard from '@/components/OutfitCard'
 import ItemImage from '@/components/ItemImage'
 import type { Outfit, WishlistItem } from '@/lib/types'
+import { resolveItemImages, resolveOutfitSlotImages } from '@/lib/resolve-images'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: items }, { data: outfits }] = await Promise.all([
+  const [{ data: rawItems }, { data: rawOutfits }] = await Promise.all([
     supabase
       .from('wishlist_items')
       .select('*')
@@ -21,6 +22,11 @@ export default async function DashboardPage() {
       .eq('user_id', user!.id)
       .order('created_at', { ascending: false })
       .limit(4),
+  ])
+
+  const [items, outfits] = await Promise.all([
+    resolveItemImages(supabase, (rawItems ?? []) as WishlistItem[]),
+    Promise.all((rawOutfits ?? []).map(o => resolveOutfitSlotImages(supabase, o as Outfit))),
   ])
 
   return (
