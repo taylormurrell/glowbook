@@ -14,7 +14,7 @@ export default function CategoryFilter({ selected, onChange, counts }: Props) {
     <div className="flex flex-wrap gap-2">
       <button
         onClick={() => onChange(null)}
-        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+        className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${
           selected === null
             ? 'bg-gray-900 text-white'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -32,7 +32,7 @@ export default function CategoryFilter({ selected, onChange, counts }: Props) {
           <button
             key={cat}
             onClick={() => onChange(cat === selected ? null : cat)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`px-3 py-2 rounded-full text-xs font-medium transition-colors ${
               selected === cat
                 ? 'bg-gray-900 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

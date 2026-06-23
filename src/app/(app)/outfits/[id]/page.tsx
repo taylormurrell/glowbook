@@ -40,7 +40,7 @@ export default async function OutfitDetailPage({
         ← Back to outfits
       </Link>
 
-      <div className="mt-6 grid grid-cols-[280px_1fr] gap-8">
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-[280px_1fr] gap-6 sm:gap-8">
         {/* Left: outfit card */}
         <div>
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
@@ -50,8 +50,8 @@ export default async function OutfitDetailPage({
 
         {/* Right: details */}
         <div className="space-y-6">
-          <div className="flex items-start justify-between">
-            <div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
               <h1 className="text-xl font-semibold text-gray-900">
                 {outfit.name || 'Untitled outfit'}
               </h1>
@@ -59,7 +59,7 @@ export default async function OutfitDetailPage({
                 <p className="text-sm text-gray-500 mt-1">{outfit.notes}</p>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-shrink-0">
               <Link
                 href={`/outfit-builder/${outfit.id}`}
                 className="px-4 py-2 text-sm font-medium border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"

@@ -126,7 +126,7 @@ export default function AddItemModal({ onClose, onSaved, editItem }: Props) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
         </div>
 
-        <div className="p-6 grid grid-cols-[1fr_200px] gap-6">
+        <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-4 sm:gap-6">
           {/* Left: fields */}
           <div className="space-y-4">
             {/* URL + Scrape */}

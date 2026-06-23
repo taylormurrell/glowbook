@@ -129,7 +129,7 @@ supabase/
 - **Tagging and filtering** — tag outfits by occasion, season, or mood; filter wishlist by multiple categories
 - **Outfit sharing** — generate a public shareable link for a single outfit (opt-in, not default)
 - **Price tracking** — alert when a wishlist item drops in price
-- **Mobile layout** — the current UI is desktop-first; a responsive mobile view would make it more useful day-to-day
+- **Mobile polish** — responsive styles are in place but the app targets desktop; a mobile pass would verify layouts and tap targets on small screens
 - **Beauty section** — the app is named Glowbook and scoped for eventual expansion into skincare and makeup routines
 
 ---

@@ -32,7 +32,7 @@ export default function Nav({ userEmail }: { userEmail: string }) {
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/dashboard" className="text-sm font-semibold tracking-tight text-gray-900">
             Glowbook

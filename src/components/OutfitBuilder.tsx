@@ -112,7 +112,7 @@ export default function OutfitBuilder({ wishlistItems, existingOutfit }: Props) 
   const activePickerSlot = pickerSlot ? slots.find(s => s.slot_type === pickerSlot) : null
 
   return (
-    <div className="grid grid-cols-[1fr_280px] gap-8">
+    <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[1fr_280px] lg:gap-8">
       {/* Left: form */}
       <div className="space-y-6">
         {/* Name + notes */}
@@ -179,7 +179,7 @@ export default function OutfitBuilder({ wishlistItems, existingOutfit }: Props) 
                   {/* Action */}
                   <button
                     onClick={() => setPickerSlot(slot.slot_type)}
-                    className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 whitespace-nowrap"
+                    className="px-3 py-2.5 text-xs font-medium border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 whitespace-nowrap"
                   >
                     {slot.wishlist_item ? 'Change' : 'Add'}
                   </button>
@@ -211,8 +211,8 @@ export default function OutfitBuilder({ wishlistItems, existingOutfit }: Props) 
         </div>
       </div>
 
-      {/* Right: live preview */}
-      <div className="sticky top-20">
+      {/* Preview — below form on mobile, sticky sidebar on desktop */}
+      <div className="lg:sticky lg:top-20">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Preview</p>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <OutfitCard outfit={previewOutfit} size="lg" />

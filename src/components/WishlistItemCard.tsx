@@ -30,8 +30,8 @@ export default function WishlistItemCard({ item, onEdit, onDelete }: Props) {
           No image
         </div>
 
-        {/* Hover actions */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-end justify-end opacity-0 group-hover:opacity-100 p-2 gap-1.5">
+        {/* Hover actions — desktop only */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors hidden sm:flex items-end justify-end opacity-0 group-hover:opacity-100 p-2 gap-1.5">
           <button
             onClick={() => onEdit(item)}
             className="px-2 py-1 bg-white rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50 shadow-sm"
@@ -74,6 +74,22 @@ export default function WishlistItemCard({ item, onEdit, onDelete }: Props) {
           >
             View ↗
           </a>
+        </div>
+
+        {/* Touch actions — mobile only */}
+        <div className="flex gap-2 mt-2.5 sm:hidden">
+          <button
+            onClick={() => onEdit(item)}
+            className="flex-1 py-2 text-xs font-medium text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => onDelete(item)}
+            className="flex-1 py-2 text-xs font-medium text-red-600 border border-red-100 rounded-lg hover:bg-red-50"
+          >
+            Delete
+          </button>
         </div>
       </div>
     </div>
