@@ -29,6 +29,7 @@ A personal wardrobe and outfit-planning app. Save fashion wishlist items from an
 | Database | Supabase Postgres with Row Level Security |
 | Storage | Supabase Storage (private bucket, signed URLs) |
 | Scraping | Cheerio (server-side product data extraction) |
+| Testing | Vitest (unit tests for security and validation logic) |
 
 ---
 
@@ -141,6 +142,23 @@ supabase/
 - No service role key is used in browser code
 - `.env.local` is git-ignored
 - **SSRF protection on the scrape endpoint:** the server-side scrape route validates every URL before fetching — non-http(s) schemes are rejected, and the hostname is resolved to its IP address(es) before the request is made. Any IP in a private, loopback, link-local, or reserved range (RFC 1918, 127/8, 169.254/16, etc.) causes a 400. Redirects are followed manually, and each redirect target is re-validated before the next hop. **Residual risk:** DNS rebinding can bypass IP validation at the app layer — the hostname resolves to a public IP at validation time but switches to a private one by the time the actual connection is made. Fully closing that gap requires OS-level or network-layer controls (e.g. egress firewall rules blocking internal CIDRs from the app server). For a personal app running locally this is an acceptable residual risk.
+
+---
+
+## Tests
+
+Unit tests cover the two layers most likely to have subtle bugs: the SSRF guard and the API input schemas.
+
+```bash
+npm test
+```
+
+| File | What it covers |
+|---|---|
+| `src/lib/__tests__/ssrf-guard.test.ts` | `isPrivateAddress` (IPv4 and IPv6 ranges), scheme rejection, private-IP-in-URL rejection, malformed URLs |
+| `src/lib/__tests__/schemas.test.ts` | Every zod schema — required fields, enum validation, partial updates, slot UUID checks, file type/size rules |
+
+API route integration tests (routes that call Supabase) are not yet written — those require a live database and will be added once the migration workflow is in place.
 
 ---
 
