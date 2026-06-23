@@ -1,10 +1,16 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { UpdateItemSchema, UuidParamSchema } from '@/lib/schemas'
 
 type Ctx = { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
-  const { id } = await params
+  const paramParsed = UuidParamSchema.safeParse(await params)
+  if (!paramParsed.success) {
+    return Response.json({ error: paramParsed.error.flatten() }, { status: 400 })
+  }
+  const { id } = paramParsed.data
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -21,15 +27,24 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 }
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
-  const { id } = await params
+  const paramParsed = UuidParamSchema.safeParse(await params)
+  if (!paramParsed.success) {
+    return Response.json({ error: paramParsed.error.flatten() }, { status: 400 })
+  }
+  const { id } = paramParsed.data
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
+  const parsed = UpdateItemSchema.safeParse(await request.json())
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from('wishlist_items')
-    .update(body)
+    .update(parsed.data)
     .eq('id', id)
     .eq('user_id', user.id)
     .select()
@@ -40,7 +55,12 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
-  const { id } = await params
+  const paramParsed = UuidParamSchema.safeParse(await params)
+  if (!paramParsed.success) {
+    return Response.json({ error: paramParsed.error.flatten() }, { status: 400 })
+  }
+  const { id } = paramParsed.data
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })

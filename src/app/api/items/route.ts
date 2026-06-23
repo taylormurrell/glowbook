@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { CreateItemSchema } from '@/lib/schemas'
 
 export async function GET() {
   const supabase = await createClient()
@@ -31,10 +32,14 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
+  const parsed = CreateItemSchema.safeParse(await request.json())
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+
   const { data, error } = await supabase
     .from('wishlist_items')
-    .insert({ ...body, user_id: user.id })
+    .insert({ ...parsed.data, user_id: user.id })
     .select()
     .single()
 

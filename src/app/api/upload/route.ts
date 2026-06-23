@@ -1,8 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-const MAX_SIZE = 5 * 1024 * 1024 // 5MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+import { UploadFileSchema } from '@/lib/schemas'
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
@@ -10,16 +8,14 @@ export async function POST(request: NextRequest) {
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const formData = await request.formData()
-  const file = formData.get('file') as File | null
-
-  if (!file) return Response.json({ error: 'No file provided' }, { status: 400 })
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return Response.json({ error: 'Unsupported file type. Use JPEG, PNG, WebP, or GIF.' }, { status: 400 })
-  }
-  if (file.size > MAX_SIZE) {
-    return Response.json({ error: 'File too large. Maximum size is 5MB.' }, { status: 400 })
+  const parsed = UploadFileSchema.safeParse({ file: formData.get('file') })
+  if (!parsed.success) {
+    const { fieldErrors } = parsed.error.flatten()
+    const message = fieldErrors.file?.[0] ?? 'Invalid file'
+    return Response.json({ error: message }, { status: 400 })
   }
 
+  const file = parsed.data.file as File
   const ext = file.name.split('.').pop() ?? 'jpg'
   const path = `${user.id}/${Date.now()}.${ext}`
   const bytes = await file.arrayBuffer()

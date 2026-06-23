@@ -2,13 +2,15 @@ import { NextRequest } from 'next/server'
 import * as cheerio from 'cheerio'
 import type { ScrapeResult } from '@/lib/types'
 import { validateScrapeUrl, SsrfError } from '@/lib/ssrf-guard'
+import { ScrapeSchema } from '@/lib/schemas'
 
 export async function POST(request: NextRequest) {
-  const { url } = await request.json()
-
-  if (!url || typeof url !== 'string') {
-    return Response.json({ error: 'URL required' }, { status: 400 })
+  const parsed = ScrapeSchema.safeParse(await request.json())
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.flatten() }, { status: 400 })
   }
+
+  const { url } = parsed.data
 
   try {
     await validateScrapeUrl(url)

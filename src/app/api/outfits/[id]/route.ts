@@ -1,10 +1,16 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { UpdateOutfitSchema, UuidParamSchema, type UpdateOutfitInput } from '@/lib/schemas'
 
 type Ctx = { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
-  const { id } = await params
+  const paramParsed = UuidParamSchema.safeParse(await params)
+  if (!paramParsed.success) {
+    return Response.json({ error: paramParsed.error.flatten() }, { status: 400 })
+  }
+  const { id } = paramParsed.data
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -21,12 +27,22 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 }
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
-  const { id } = await params
+  const paramParsed = UuidParamSchema.safeParse(await params)
+  if (!paramParsed.success) {
+    return Response.json({ error: paramParsed.error.flatten() }, { status: 400 })
+  }
+  const { id } = paramParsed.data
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { name, notes, slots } = await request.json()
+  const parsed = UpdateOutfitSchema.safeParse(await request.json())
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.flatten() }, { status: 400 })
+  }
+
+  const { name, notes, slots } = parsed.data as UpdateOutfitInput
 
   const { data: outfit, error: outfitError } = await supabase
     .from('outfits')
@@ -41,26 +57,29 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
   // Replace all slots
   await supabase.from('outfit_slots').delete().eq('outfit_id', id)
 
-  if (slots && slots.length > 0) {
-    const slotRows = slots
-      .filter((s: { wishlist_item_id: string | null }) => s.wishlist_item_id)
-      .map((s: { slot_type: string; wishlist_item_id: string; display_order: number }) => ({
-        outfit_id: id,
-        slot_type: s.slot_type,
-        wishlist_item_id: s.wishlist_item_id,
-        display_order: s.display_order ?? 0,
-      }))
+  const slotRows = slots
+    .filter((s) => s.wishlist_item_id)
+    .map((s) => ({
+      outfit_id: id,
+      slot_type: s.slot_type,
+      wishlist_item_id: s.wishlist_item_id,
+      display_order: s.display_order,
+    }))
 
-    if (slotRows.length > 0) {
-      await supabase.from('outfit_slots').insert(slotRows)
-    }
+  if (slotRows.length > 0) {
+    await supabase.from('outfit_slots').insert(slotRows)
   }
 
   return Response.json(outfit)
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
-  const { id } = await params
+  const paramParsed = UuidParamSchema.safeParse(await params)
+  if (!paramParsed.success) {
+    return Response.json({ error: paramParsed.error.flatten() }, { status: 400 })
+  }
+  const { id } = paramParsed.data
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 })

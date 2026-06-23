@@ -1,4 +1,5 @@
 import dns from 'node:dns/promises'
+import type { LookupAddress } from 'node:dns'
 
 export class SsrfError extends Error {}
 
@@ -15,7 +16,7 @@ export async function validateScrapeUrl(rawUrl: string): Promise<void> {
   }
 
   const hostname = parsed.hostname
-  let addresses: dns.LookupAddress[]
+  let addresses: LookupAddress[]
   try {
     addresses = await dns.lookup(hostname, { all: true })
   } catch {
