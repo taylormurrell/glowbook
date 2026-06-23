@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import * as cheerio from 'cheerio'
 import type { ScrapeResult } from '@/lib/types'
+import { validateScrapeUrl, SsrfError } from '@/lib/ssrf-guard'
 
 export async function POST(request: NextRequest) {
   const { url } = await request.json()
@@ -10,14 +11,16 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-      },
-      signal: AbortSignal.timeout(10000),
-    })
+    await validateScrapeUrl(url)
+  } catch (e) {
+    if (e instanceof SsrfError) {
+      return Response.json({ error: 'Invalid URL' }, { status: 400 })
+    }
+    return Response.json({ error: 'Invalid URL' }, { status: 400 })
+  }
+
+  try {
+    const res = await safeFetch(url)
 
     if (!res.ok) {
       return Response.json(buildEmpty(), { status: 200 })
@@ -84,6 +87,39 @@ export async function POST(request: NextRequest) {
   } catch {
     return Response.json(buildEmpty(), { status: 200 })
   }
+}
+
+const FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.5',
+}
+
+async function safeFetch(startUrl: string, maxRedirects = 5): Promise<Response> {
+  let url = startUrl
+
+  for (let i = 0; i <= maxRedirects; i++) {
+    const res = await fetch(url, {
+      redirect: 'manual',
+      headers: FETCH_HEADERS,
+      signal: AbortSignal.timeout(10000),
+    })
+
+    if (res.status >= 300 && res.status < 400) {
+      if (i === maxRedirects) throw new Error('Too many redirects')
+      const location = res.headers.get('location')
+      if (!location) return res
+      const next = new URL(location, url).href
+      // Re-validate each redirect target to block open-redirect to internal hosts
+      await validateScrapeUrl(next)
+      url = next
+      continue
+    }
+
+    return res
+  }
+
+  throw new Error('Too many redirects')
 }
 
 function buildEmpty(): ScrapeResult {
