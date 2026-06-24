@@ -91,6 +91,22 @@ The fix works in a few layers:
 
 One known limitation is DNS rebinding, where a domain resolves to a safe address at check time but switches to an internal one by the time the actual request is made. This can't be fully prevented at the app layer and would require network-level controls. It's noted in the security section as an accepted residual risk for a personal app.
 
+### Why there are two schema files
+The database setup lives in two places, and that's deliberate.
+
+`supabase/schema.sql` came first. It's a single file you paste into the Supabase web SQL editor to build the whole database in one go, and it's how the live database was originally set up. The `supabase/migrations/` folder came later. It holds the same SQL, restructured into the format Supabase's command-line tool runs automatically with `npx supabase db push`.
+
+So why add migrations if `schema.sql` already worked? A single schema file describes what the database should look like right now, but it keeps no history. The moment the schema needs to change, you're back to hand-editing the file and remembering to re-run it everywhere. Migrations are timestamped, versioned files that a tool applies in order, which turns schema changes into something tracked and repeatable rather than a manual copy-paste.
+
+I kept both because they serve different moments:
+
+| File | Best for | Trade-off |
+|---|---|---|
+| `supabase/schema.sql` | Quickly pasting into the Supabase web editor with no CLI setup | Has to be kept in sync by hand |
+| `supabase/migrations/` | Repeatable, versioned setup via `npx supabase db push` | Needs the Supabase CLI installed and linked |
+
+They currently contain the same SQL. If the schema changes in future, the migration is the source of truth and `schema.sql` is the convenience copy that gets updated to match.
+
 ---
 
 ## Running locally
@@ -121,7 +137,7 @@ The schema is managed as a versioned migration in `supabase/migrations/`. To app
 npx supabase link   # connect the CLI to your Supabase project
 npx supabase db push
 ```
-This creates the tables, enables RLS, adds policies, and grants Data API access. If you prefer, you can still paste `supabase/schema.sql` directly into the Supabase SQL editor as a one-off — the migration file contains the same SQL.
+This creates the tables, enables RLS, adds policies, and grants Data API access. If you prefer not to use the CLI, you can paste `supabase/schema.sql` directly into the Supabase SQL editor instead; it contains the same SQL. (See [Why there are two schema files](#why-there-are-two-schema-files) for why both exist.)
 
 ### 4. Create the storage bucket
 In Supabase **Storage**, create a bucket named `item-images` with **Public bucket turned off**.
