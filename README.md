@@ -187,11 +187,13 @@ supabase/
 
 ## Security notes
 
-- All database tables use Row Level Security, so users can only access their own data
-- Uploaded images are in a private Supabase Storage bucket; access requires a short-lived signed URL generated server-side
-- No service role key is used in browser code
-- `.env.local` is git-ignored
-- **SSRF protection on the scrape endpoint:** the server-side scrape route validates every URL before fetching. Non-http(s) schemes are rejected, and the hostname is resolved to its IP address before the request is made. Any IP in a private, loopback, or link-local range causes a 400. This covers IPv4 (RFC 1918 `10/8`, `172.16/12`, `192.168/16`, plus `127/8`, `169.254/16`, `0/8`), the IPv6 equivalents (`::1`, `::`, `fe80::/10`, `fc00::/7`), and IPv4-mapped IPv6 addresses. Redirects are followed manually, and each redirect target is re-validated before the next hop. **Residual risk:** DNS rebinding can bypass IP validation at the app layer, since the hostname may resolve to a public IP at check time but switch to a private one at connection time. Fully closing that gap requires network-level controls (e.g. egress firewall rules blocking internal CIDRs). For a personal app this is an accepted residual risk.
+A quick checklist of what's enforced (the reasoning behind each is in [What I learned](#what-i-learned-building-this) above):
+
+- **Row Level Security** on all tables, so users can only ever access their own data
+- **Private image storage:** uploaded images sit in a private bucket and are only reachable via short-lived signed URLs generated server-side
+- **No service role key** in browser code; the app uses only the public anon key
+- **`.env.local` is git-ignored**
+- **SSRF protection** on the scrape endpoint: user-supplied URLs are validated before every fetch (and every redirect hop). Non-http(s) schemes are rejected, the hostname is resolved to its IP, and any private, loopback, or link-local address is blocked across IPv4, IPv6, and IPv4-mapped IPv6. Residual risk: DNS rebinding can't be fully closed at the app layer and is accepted for a personal app.
 
 ---
 
