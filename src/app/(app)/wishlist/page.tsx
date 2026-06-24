@@ -21,14 +21,23 @@ export default function WishlistPage() {
   const [deleting, setDeleting] = useState(false)
 
   const load = useCallback(async () => {
-    setLoading(true)
     const res = await fetch('/api/items')
     const data = await res.json()
     setItems(data ?? [])
     setLoading(false)
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    let active = true
+    fetch('/api/items')
+      .then(res => res.json())
+      .then(data => {
+        if (!active) return
+        setItems(data ?? [])
+        setLoading(false)
+      })
+    return () => { active = false }
+  }, [])
 
   const counts = items.reduce((acc, item) => {
     acc[item.category] = (acc[item.category] ?? 0) + 1

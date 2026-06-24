@@ -18,6 +18,12 @@ describe('CreateItemSchema', () => {
     image_source: 'scraped_url',
   }
 
+  const without = (key: keyof typeof valid) => {
+    const copy: Record<string, unknown> = { ...valid }
+    delete copy[key]
+    return copy
+  }
+
   it('accepts a minimal valid payload', () => {
     expect(CreateItemSchema.safeParse(valid).success).toBe(true)
   })
@@ -41,8 +47,7 @@ describe('CreateItemSchema', () => {
   })
 
   it('rejects missing product_name', () => {
-    const { product_name: _, ...rest } = valid
-    expect(CreateItemSchema.safeParse(rest).success).toBe(false)
+    expect(CreateItemSchema.safeParse(without('product_name')).success).toBe(false)
   })
 
   it('rejects empty product_name', () => {
@@ -50,8 +55,7 @@ describe('CreateItemSchema', () => {
   })
 
   it('rejects missing category', () => {
-    const { category: _, ...rest } = valid
-    expect(CreateItemSchema.safeParse(rest).success).toBe(false)
+    expect(CreateItemSchema.safeParse(without('category')).success).toBe(false)
   })
 
   it('rejects an invalid category value', () => {
@@ -59,8 +63,7 @@ describe('CreateItemSchema', () => {
   })
 
   it('rejects missing image_source', () => {
-    const { image_source: _, ...rest } = valid
-    expect(CreateItemSchema.safeParse(rest).success).toBe(false)
+    expect(CreateItemSchema.safeParse(without('image_source')).success).toBe(false)
   })
 
   it('rejects an invalid image_source value', () => {
