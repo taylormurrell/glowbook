@@ -1,5 +1,7 @@
 # Glowbook
 
+[![CI](https://github.com/taylormurrell/glowbook/actions/workflows/ci.yml/badge.svg)](https://github.com/taylormurrell/glowbook/actions/workflows/ci.yml)
+
 A personal wardrobe and outfit-planning app. Save fashion wishlist items from any retailer URL, upload your own photos, and build visual outfit cards by combining items into named looks.
 
 > **Why I built this:** I wanted a real project to learn Supabase end-to-end (auth, Postgres with row-level security, and private file storage) while building something I'd actually use. This is a solo side project, not a startup.
@@ -125,7 +127,10 @@ npm install
 ### 2. Create a Supabase project
 1. Create a new project at [supabase.com](https://supabase.com)
 2. In **Project Settings → API**, copy your **Project URL** and **anon public key**
-3. Create `.env.local` in the project root:
+3. Copy `.env.example` to `.env.local` and fill in your values:
+```bash
+cp .env.example .env.local
+```
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
