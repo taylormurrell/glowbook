@@ -2,19 +2,19 @@
 
 A personal wardrobe and outfit-planning app. Save fashion wishlist items from any retailer URL, upload your own photos, and build visual outfit cards by combining items into named looks.
 
-> **Why I built this:** I wanted a real project to learn Supabase end-to-end — auth, Postgres with row-level security, and private file storage — while building something I'd actually use. This is a solo side project, not a startup.
+> **Why I built this:** I wanted a real project to learn Supabase end-to-end (auth, Postgres with row-level security, and private file storage) while building something I'd actually use. This is a solo side project, not a startup.
 
 ---
 
 ## Screenshots
 
-**Wishlist** — save items from any retailer URL with auto-scraped images, names, and prices
+**Wishlist:** save items from any retailer URL with auto-scraped images, names, and prices
 ![Wishlist](docs/screenshots/wishlist.png)
 
-**Outfit builder** — assign wishlist items to category slots with a live visual preview
+**Outfit builder:** assign wishlist items to category slots with a live visual preview
 ![Outfit builder](docs/screenshots/outfit-builder.png)
 
-**Outfit detail** — view a finished outfit card alongside the full item list
+**Outfit detail:** view a finished outfit card alongside the full item list
 ![Outfit detail](docs/screenshots/outfit-detail.png)
 
 ---
@@ -29,44 +29,67 @@ A personal wardrobe and outfit-planning app. Save fashion wishlist items from an
 | Database | Supabase Postgres with Row Level Security |
 | Storage | Supabase Storage (private bucket, signed URLs) |
 | Scraping | Cheerio (server-side product data extraction) |
+| Validation | Zod (schema validation on every API route) |
 | Testing | Vitest (unit tests for security and validation logic) |
+| Hosting | Vercel (auto-deploys from `main`) |
 
 ---
 
 ## Features
 
-- **Wishlist** — paste a retailer URL and auto-scrape product name, brand, price, and image; manually edit any field; categorize by type (top, bottom, dress, shoes, bag, jewelry, etc.)
-- **Image handling** — upload your own photo via drag-and-drop, or use the scraped retailer image
-- **Outfit builder** — create named outfits by assigning wishlist items to category slots; live visual preview as you build
-- **Outfit board** — browse all saved outfits as visual cards; click through to detail view with full item list
+- **Wishlist:** paste a retailer URL and auto-scrape the product name, brand, price, and image; manually edit any field; categorize by type (top, bottom, dress, shoes, bag, jewelry, etc.)
+- **Image handling:** upload your own photo via drag-and-drop, or use the scraped retailer image
+- **Outfit builder:** create named outfits by assigning wishlist items to category slots, with a live visual preview as you build
+- **Outfit board:** browse all saved outfits as visual cards; click through to a detail view with the full item list
 
 ---
 
 ## What I learned building this
 
-### Supabase setup from scratch
-This was my first time configuring Supabase end-to-end rather than using a starter template. Key things I had to figure out:
+### Locking down the database with Row Level Security (RLS)
+By default, a database trusts whoever is making the request. Row Level Security changes that by moving the "who's allowed to see what" logic into the database itself, so even if something goes wrong in the app code, users can only ever access their own data.
 
-- **RLS requires two layers.** Enabling Row Level Security locks a table, but you also need explicit `GRANT` statements for PostgREST (the Data API) to see the table at all — especially when "Automatically expose new tables" is turned off. Without the grants, tables show as "API DISABLED" even with RLS enabled.
-- **Policy pattern for user-scoped data:** `auth.uid() = user_id` on insert and select. For join tables like `outfit_slots` (which don't have their own `user_id`), ownership is verified through the parent `outfits` table.
-- **Storage policies are separate from table policies.** A private bucket with no policies denies everything by default — uploads, reads, and deletes all fail with RLS errors until you add explicit per-bucket policies.
+Setting it up had two non-obvious steps:
+- **Enabling RLS isn't enough on its own.** You also have to explicitly tell the API layer it's allowed to read the table at all. Without that second step, the table silently shows as unavailable, with no helpful error explaining why.
+- **Every table needs its own rule, including join tables.** The `outfit_slots` table (which links outfits to items) doesn't have a user ID on it. The rule has to say "only allow access if the outfit this slot belongs to is owned by the current user," which requires one extra join in the policy logic.
 
-### Private file storage with signed URLs
-Most tutorials use public buckets and `getPublicUrl()`. I deliberately chose a private bucket, which required a different approach:
+### Keeping uploaded images private
+The easy approach for image storage is a public bucket, where every image gets a permanent URL that anyone can visit. I used a private bucket instead, which means images are only accessible if the server explicitly authorises the request.
 
-- Uploaded image **paths** are stored in the database (e.g. `user-id/1234567890.jpg`), not URLs
-- **Signed URLs** (1-hour TTL) are generated server-side at fetch time using `createSignedUrl()` and swapped in before the response reaches the client
-- Scraped retailer image URLs are stored and displayed directly — no signing needed
-- A shared `resolveItemImages` / `resolveOutfitSlotImages` helper handles the conversion across all server pages that embed wishlist items
+How it works in practice:
+- The database stores a file **path** (like `user-id/1234567890.jpg`), not a URL
+- Every time a page loads, the server generates a **temporary URL** for each image that expires after 1 hour and swaps it into the response before it reaches the browser
+- If someone saved an old URL and tried to use it later, it would already be expired and return nothing
 
-### Next.js App Router: Server vs Client Components
-A few things that caught me out:
+Scraped retailer images from product pages are just normal public URLs and don't need any of this treatment.
 
-- Event handlers like `onError` on `<img>` tags can only live in Client Components. A Server Component that renders `<img onError={...}>` throws at runtime — the fix is either `'use client'` or extracting a tiny wrapper component.
-- Pages that fetch data via Supabase directly (Server Components) bypass any API route logic — so signed URL resolution has to be applied explicitly in each page, not just in the API route.
+### Next.js: knowing when code runs on the server vs the browser
+Next.js lets you mix server-rendered and browser-rendered components in the same app, which is powerful but has some sharp edges:
 
-### URL scraping
-Used Cheerio server-side to extract `og:image`, `og:title`, and JSON-LD structured product data from retailer pages. Works well for structured sites; falls back gracefully when scraping fails. Note: many retailer CDNs block hotlinking, so scraped images may not display on external domains — uploading your own photo is the reliable path.
+- Some things, like reacting to a broken image loading, can only happen in the browser. Trying to do it in a server component throws a runtime error that isn't immediately obvious to debug.
+- Pages that fetch data directly from Supabase (server components) completely bypass the API routes. Any processing you want applied to every response, like swapping in those temporary image URLs, has to be done explicitly in each page rather than once in the API layer.
+
+### Scraping product pages
+When you paste a retailer URL into Glowbook, the server fetches that page and extracts the product name, price, brand, and image automatically using a library called Cheerio. It works by reading the structured metadata that most retail sites embed in their pages for SEO purposes.
+
+One limitation: many retailer CDNs block their images from loading on other websites to protect bandwidth and branding. Scraped images sometimes won't display for this reason, so uploading your own photo is the more reliable path.
+
+### Validating everything coming into the API (Zod)
+Every API route is a potential entry point for bad data. Early on, the routes took whatever the browser sent and passed it straight to the database, which meant a malicious request could include extra fields like a forged user ID or unexpected data types.
+
+I added a validation layer using a library called Zod. It works like a strict checklist at the door of each API route: the incoming data has to match an exact description of what's expected (right fields, right types, nothing extra). If it doesn't match, the request is rejected immediately with a clear error before it gets anywhere near the database. The database's own security rules catch anything that slips through, but this stops most bad input much earlier.
+
+### Protecting the scrape feature from server-side attacks (SSRF)
+SSRF, or Server-Side Request Forgery, is an attack where someone tricks your server into making requests on their behalf to places it shouldn't be talking to.
+
+In this case, the scrape feature takes a URL from the user and fetches it from the server. Without any checks, someone could submit something like `http://169.254.169.254`, an internal AWS address that returns server credentials, and the server would happily fetch it.
+
+The fix works in a few layers:
+- **Reject non-web URLs immediately.** Only `http://` and `https://` are allowed.
+- **Resolve the domain to its real IP address before fetching.** A domain that looks innocent might actually point to an internal address. Checking the URL string isn't enough; you have to check where it actually resolves to.
+- **Re-validate on every redirect.** A URL can redirect to a different URL, so each hop is checked independently.
+
+One known limitation is DNS rebinding, where a domain resolves to a safe address at check time but switches to an internal one by the time the actual request is made. This can't be fully prevented at the app layer and would require network-level controls. It's noted in the security section as an accepted residual risk for a personal app.
 
 ---
 
@@ -116,8 +139,12 @@ src/
     login/              # Public auth page
   components/           # Shared UI components
   lib/
+    __tests__/          # Unit tests (ssrf-guard, schemas)
     supabase/           # Server and client Supabase instances
+    constants.ts        # Category and slot enums
     resolve-images.ts   # Signed URL resolution for uploaded images
+    schemas.ts          # Zod schemas for all API route inputs
+    ssrf-guard.ts       # URL validation to prevent SSRF on the scrape endpoint
     types.ts            # Shared TypeScript types
 supabase/
   schema.sql            # Full database schema with RLS policies and grants
@@ -127,21 +154,21 @@ supabase/
 
 ## What I'd build next
 
-- **Tagging and filtering** — tag outfits by occasion, season, or mood; filter wishlist by multiple categories
-- **Outfit sharing** — generate a public shareable link for a single outfit (opt-in, not default)
-- **Price tracking** — alert when a wishlist item drops in price
-- **Mobile polish** — responsive styles are in place but the app targets desktop; a mobile pass would verify layouts and tap targets on small screens
-- **Beauty section** — the app is named Glowbook and scoped for eventual expansion into skincare and makeup routines
+- **Tagging and filtering:** tag outfits by occasion, season, or mood; filter the wishlist by multiple categories at once
+- **Outfit sharing:** generate a public shareable link for a single outfit (opt-in, not default)
+- **Price tracking:** get an alert when a wishlist item drops in price
+- **Mobile polish:** responsive styles are in place but the app targets desktop; a proper mobile pass would verify layouts and tap targets on small screens
+- **Beauty section:** the app is named Glowbook and scoped for eventual expansion into skincare and makeup routines
 
 ---
 
 ## Security notes
 
-- All database tables use Row Level Security — users can only access their own data
+- All database tables use Row Level Security, so users can only access their own data
 - Uploaded images are in a private Supabase Storage bucket; access requires a short-lived signed URL generated server-side
 - No service role key is used in browser code
 - `.env.local` is git-ignored
-- **SSRF protection on the scrape endpoint:** the server-side scrape route validates every URL before fetching — non-http(s) schemes are rejected, and the hostname is resolved to its IP address(es) before the request is made. Any IP in a private, loopback, link-local, or reserved range (RFC 1918, 127/8, 169.254/16, etc.) causes a 400. Redirects are followed manually, and each redirect target is re-validated before the next hop. **Residual risk:** DNS rebinding can bypass IP validation at the app layer — the hostname resolves to a public IP at validation time but switches to a private one by the time the actual connection is made. Fully closing that gap requires OS-level or network-layer controls (e.g. egress firewall rules blocking internal CIDRs from the app server). For a personal app running locally this is an acceptable residual risk.
+- **SSRF protection on the scrape endpoint:** the server-side scrape route validates every URL before fetching. Non-http(s) schemes are rejected, and the hostname is resolved to its IP address before the request is made. Any IP in a private, loopback, link-local, or reserved range (RFC 1918, 127/8, 169.254/16, etc.) causes a 400. Redirects are followed manually, and each redirect target is re-validated before the next hop. **Residual risk:** DNS rebinding can bypass IP validation at the app layer, since the hostname may resolve to a public IP at check time but switch to a private one at connection time. Fully closing that gap requires network-level controls (e.g. egress firewall rules blocking internal CIDRs). For a personal app this is an accepted residual risk.
 
 ---
 
@@ -156,9 +183,9 @@ npm test
 | File | What it covers |
 |---|---|
 | `src/lib/__tests__/ssrf-guard.test.ts` | `isPrivateAddress` (IPv4 and IPv6 ranges), scheme rejection, private-IP-in-URL rejection, malformed URLs |
-| `src/lib/__tests__/schemas.test.ts` | Every zod schema — required fields, enum validation, partial updates, slot UUID checks, file type/size rules |
+| `src/lib/__tests__/schemas.test.ts` | Every zod schema: required fields, enum validation, partial updates, slot UUID checks, file type/size rules |
 
-API route integration tests (routes that call Supabase) are not yet written — those require a live database and will be added once the migration workflow is in place.
+API route integration tests (routes that call Supabase) are not yet written. Those require a live database and will be added once the migration workflow is in place.
 
 ---
 

@@ -14,7 +14,7 @@ Glowbook is a personal Wardrobe & Beauty app. The first MVP is focused entirely 
 - Beauty features (skincare, makeup, etc.) — may be added in a future phase
 - Social / sharing features
 - Mobile app
-- Vercel deployment (building locally first)
+- Social / sharing features (beyond the app itself)
 
 ## Stack
 - Framework: Next.js 16 (App Router), TypeScript
@@ -22,7 +22,7 @@ Glowbook is a personal Wardrobe & Beauty app. The first MVP is focused entirely 
 - Auth: Supabase Auth (SSR)
 - Database: Supabase Postgres with RLS
 - Storage: Supabase Storage (`item-images` bucket, private)
-- Hosting: local dev for now (`npm run dev`)
+- Hosting: Vercel (auto-deploys from `main`), available at https://glowbook-self.vercel.app
 
 ## Key data model
 - `wishlist_items` — saved fashion items with metadata and image
