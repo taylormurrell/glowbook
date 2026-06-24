@@ -28,6 +28,18 @@ describe('isPrivateAddress', () => {
     expect(isPrivateAddress('fc00::1')).toBe(true)
     expect(isPrivateAddress('fd12:3456::1')).toBe(true)
   })
+
+  it('flags IPv4-mapped IPv6 addresses by unwrapping the IPv4 underneath', () => {
+    expect(isPrivateAddress('::ffff:127.0.0.1')).toBe(true)
+    expect(isPrivateAddress('::ffff:169.254.169.254')).toBe(true)
+    expect(isPrivateAddress('::ffff:10.0.0.1')).toBe(true)
+    expect(isPrivateAddress('::ffff:192.168.1.1')).toBe(true)
+  })
+
+  it('allows IPv4-mapped IPv6 wrapping a public address', () => {
+    expect(isPrivateAddress('::ffff:8.8.8.8')).toBe(false)
+    expect(isPrivateAddress('::ffff:1.1.1.1')).toBe(false)
+  })
 })
 
 describe('validateScrapeUrl', () => {

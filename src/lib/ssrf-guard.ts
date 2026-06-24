@@ -42,6 +42,10 @@ export function isPrivateAddress(ip: string): boolean {
   if (/^fe[89ab][0-9a-f]:/i.test(ip)) return true        // fe80::/10 link-local
   if (/^f[cd]/i.test(ip)) return true                     // fc00::/7 unique-local
 
+  // IPv4-mapped IPv6 (e.g. ::ffff:169.254.169.254): unwrap and check the IPv4 underneath
+  const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
+  if (mapped) return isPrivateAddress(mapped[1])
+
   // IPv4 checks
   const parts = ip.split('.')
   if (parts.length !== 4) return false

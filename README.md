@@ -187,7 +187,7 @@ npm test
 
 | File | What it covers |
 |---|---|
-| `src/lib/__tests__/ssrf-guard.test.ts` | `isPrivateAddress` (IPv4 and IPv6 ranges), scheme rejection, private-IP-in-URL rejection, malformed URLs |
+| `src/lib/__tests__/ssrf-guard.test.ts` | `isPrivateAddress` (IPv4, IPv6, and IPv4-mapped IPv6 ranges), scheme rejection, private-IP-in-URL rejection, malformed URLs |
 | `src/lib/__tests__/schemas.test.ts` | Every zod schema: required fields, enum validation, partial updates, slot UUID checks, file type/size rules |
 
 API route integration tests (routes that call Supabase) are not yet written. Those require a live database and will be added once the migration workflow is in place.
