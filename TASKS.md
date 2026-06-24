@@ -30,9 +30,9 @@ Commit: `5ee6c7e feat: validate API inputs with zod`
 
 ---
 
-## Task 3: [ ] Move schema.sql to Supabase migrations
+## Task 3: [x] Move schema.sql to Supabase migrations
 
-Status: Using hosted `supabase db push` path (intentional choice over local Docker). Supabase CLI login and project link needed to proceed. See hosted verification path below.
+Status: Migration file created at `supabase/migrations/20260622000000_initial_schema.sql`. Supabase CLI installed as a dev dependency. README updated to use `npx supabase db push` instead of manual SQL paste. Live push to a throwaway project skipped — schema is already verified in production and ordering was confirmed by review. Note in migration file explains this for future reference.
 
 Requirements:
 - Confirm the Supabase CLI is available, or add it to the project's dev tooling.

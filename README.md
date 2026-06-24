@@ -116,7 +116,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 ### 3. Run the database schema
-In Supabase **SQL Editor**, paste and run the contents of `supabase/schema.sql`. This creates the tables, enables RLS, adds policies, and grants Data API access.
+The schema is managed as a versioned migration in `supabase/migrations/`. To apply it to a fresh database, run:
+```bash
+npx supabase link   # connect the CLI to your Supabase project
+npx supabase db push
+```
+This creates the tables, enables RLS, adds policies, and grants Data API access. If you prefer, you can still paste `supabase/schema.sql` directly into the Supabase SQL editor as a one-off — the migration file contains the same SQL.
 
 ### 4. Create the storage bucket
 In Supabase **Storage**, create a bucket named `item-images` with **Public bucket turned off**.
