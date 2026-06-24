@@ -96,7 +96,7 @@ One known limitation is DNS rebinding, where a domain resolves to a safe address
 ## Running locally
 
 ### Prerequisites
-- Node.js 18+
+- Node.js 20+ (required by the test runner)
 - A [Supabase](https://supabase.com) account (free tier is enough)
 
 ### 1. Clone and install
@@ -151,7 +151,9 @@ src/
     schemas.ts          # Zod schemas for all API route inputs
     ssrf-guard.ts       # URL validation to prevent SSRF on the scrape endpoint
     types.ts            # Shared TypeScript types
+  proxy.ts              # Auth middleware: protects routes and refreshes the session
 supabase/
+  migrations/           # Versioned schema migrations (source of truth)
   schema.sql            # Full database schema with RLS policies and grants
 ```
 
