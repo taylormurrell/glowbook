@@ -123,7 +123,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON outfit_slots TO authenticated;
 
 -- Storage policies for private item-images bucket
 -- Bucket must be created manually in Supabase dashboard (private, not public)
--- Paths are stored as {user.id}/{timestamp}.ext — folder check enforces per-user isolation
+-- Paths are stored as {user.id}/{uuid}.ext; the folder check enforces per-user isolation
 
 DROP POLICY IF EXISTS "Users upload to own folder" ON storage.objects;
 CREATE POLICY "Users upload to own folder"
