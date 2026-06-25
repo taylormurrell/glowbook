@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import OutfitBuilder from '@/components/OutfitBuilder'
 import type { Outfit, WishlistItem } from '@/lib/types'
@@ -12,18 +12,19 @@ export default async function EditOutfitPage({
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const [{ data: rawOutfit, error }, { data: rawItems }] = await Promise.all([
     supabase
       .from('outfits')
       .select('*, slots:outfit_slots(*, wishlist_item:wishlist_items(*))')
       .eq('id', id)
-      .eq('user_id', user!.id)
+      .eq('user_id', user.id)
       .single(),
     supabase
       .from('wishlist_items')
       .select('*')
-      .eq('user_id', user!.id)
+      .eq('user_id', user.id)
       .order('category'),
   ])
 

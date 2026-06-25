@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import OutfitBuilder from '@/components/OutfitBuilder'
 import type { WishlistItem } from '@/lib/types'
@@ -6,11 +7,12 @@ import { resolveItemImages } from '@/lib/resolve-images'
 export default async function NewOutfitPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data: rawItems } = await supabase
     .from('wishlist_items')
     .select('*')
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .order('category')
 
   const items = await resolveItemImages(supabase, (rawItems ?? []) as WishlistItem[])

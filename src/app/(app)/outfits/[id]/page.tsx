@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import OutfitCard from '@/components/OutfitCard'
@@ -15,12 +15,13 @@ export default async function OutfitDetailPage({
   const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data: rawOutfit, error } = await supabase
     .from('outfits')
     .select('*, slots:outfit_slots(*, wishlist_item:wishlist_items(*))')
     .eq('id', id)
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .single()
 
   if (error || !rawOutfit) notFound()

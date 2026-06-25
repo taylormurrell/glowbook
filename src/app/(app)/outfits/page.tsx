@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import OutfitCard from '@/components/OutfitCard'
 import type { Outfit } from '@/lib/types'
@@ -7,11 +8,12 @@ import { resolveOutfitSlotImages } from '@/lib/resolve-images'
 export default async function OutfitsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
   const { data: rawOutfits } = await supabase
     .from('outfits')
     .select('*, slots:outfit_slots(*, wishlist_item:wishlist_items(*))')
-    .eq('user_id', user!.id)
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   const outfits = await Promise.all((rawOutfits ?? []).map(o => resolveOutfitSlotImages(supabase, o as Outfit)))
