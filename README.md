@@ -108,7 +108,7 @@ I kept both because they serve different moments:
 | `supabase/schema.sql` | Quickly pasting into the Supabase web editor with no CLI setup | Has to be kept in sync by hand |
 | `supabase/migrations/` | Repeatable, versioned setup via `npx supabase db push` | Needs the Supabase CLI installed and linked |
 
-They currently contain the same SQL. If the schema changes in future, the migration is the source of truth and `schema.sql` is the convenience copy that gets updated to match.
+The migrations are the source of truth. `schema.sql` is a snapshot of the end state those migrations produce, kept only as a convenience for pasting into the web editor; its header says as much. When a migration changes the schema, the snapshot gets updated to match, so the two describe the same final database rather than drifting apart.
 
 ---
 
@@ -211,7 +211,8 @@ This is a personal app, and I've been deliberate about what I did and didn't har
 - **Residual DNS rebinding risk** on the scrape endpoint, as noted above. Fully closing it needs network-level egress controls, not application code.
 - **Upload validation checks MIME type and size, not file contents.** The MIME type comes from the browser and isn't independently verified (e.g. by inspecting magic bytes), so it shouldn't be treated as strong file-type validation. Files are stored under a random UUID name with an extension derived from the declared type.
 - **No API route integration tests yet.** The unit tests cover validation and the SSRF guard; testing the routes end-to-end needs a live test database, which I haven't set up.
-- **The SSRF guard blocks the common private ranges, not every special-use range.** It covers RFC 1918, loopback, and link-local; ranges like carrier-grade NAT (`100.64/8`) are out of scope for this demo.
+- **The SSRF guard blocks the common private ranges, not every special-use range.** It covers RFC 1918, loopback, and link-local; ranges like carrier-grade NAT (`100.64/8`) and documentation/test networks are out of scope for this demo. The guard targets internal-network access, not every non-public address.
+- **Outfit updates are not atomic.** Editing an outfit deletes its existing slots and inserts the new ones as separate statements rather than in a transaction. Both failure paths are now checked and surfaced as errors, but if the insert failed after the delete, the outfit could be left with no slots. A production version would wrap this in a Postgres function/RPC transaction.
 
 ---
 
@@ -228,7 +229,7 @@ npm test
 | `src/lib/__tests__/ssrf-guard.test.ts` | `isPrivateAddress` (IPv4, IPv6, and IPv4-mapped IPv6 ranges), scheme rejection, private-IP-in-URL rejection, malformed URLs |
 | `src/lib/__tests__/schemas.test.ts` | Every zod schema: required fields, enum validation, partial updates, slot UUID checks, file type/size rules |
 
-API route integration tests (routes that call Supabase) are not yet written; see [Known limitations](#known-limitations).
+API route integration tests (routes that call Supabase) are not yet written; see [Known limitations](#known-limitations). When added, they would cover the things unit tests can't reach: RLS ownership boundaries (a user can't read or write another user's rows), signed-image resolution in API responses, and outfit-slot replacement behavior on update.
 
 ---
 

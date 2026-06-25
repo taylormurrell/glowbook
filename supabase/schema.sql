@@ -1,3 +1,8 @@
+-- Convenience snapshot of the full schema for pasting into the Supabase SQL
+-- editor in one go. The source of truth is supabase/migrations/. When you add a
+-- migration, update this file to match the resulting end state so the two
+-- don't drift.
+
 -- Wishlist Items
 CREATE TABLE IF NOT EXISTS wishlist_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
