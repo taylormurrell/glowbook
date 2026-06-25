@@ -34,6 +34,12 @@ yarn-error.log*
 .env*
 !.env.example
 
+# local AI tooling config (kept out of the public repo)
+CLAUDE.md
+AGENTS.md
+AI_RULES.md
+TASKS.md
+
 # vercel
 .vercel
 
