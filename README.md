@@ -49,7 +49,7 @@ A personal wardrobe and outfit-planning app. Save fashion wishlist items from an
 ## What I learned building this
 
 ### Locking down the database with Row Level Security (RLS)
-By default, a database trusts whoever is making the request. Row Level Security changes that by moving the "who's allowed to see what" logic into the database itself, so even if something goes wrong in the app code, users can only ever access their own data.
+By default, a database trusts whoever is making the request. Row Level Security moves access control into the database itself, so user-owned rows are scoped by policy even if the app code makes a broader query.
 
 Setting it up had two non-obvious steps:
 - **Enabling RLS isn't enough on its own.** You also have to explicitly tell the API layer it's allowed to read the table at all. Without that second step, the table silently shows as unavailable, with no helpful error explaining why.
