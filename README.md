@@ -53,7 +53,7 @@ By default, a database trusts whoever is making the request. Row Level Security 
 
 Setting it up had two non-obvious steps:
 - **Enabling RLS isn't enough on its own.** You also have to explicitly tell the API layer it's allowed to read the table at all. Without that second step, the table silently shows as unavailable, with no helpful error explaining why.
-- **Every table needs its own rule, including join tables.** The `outfit_slots` table (which links outfits to items) doesn't have a user ID on it. The rule has to say "only allow access if the outfit this slot belongs to is owned by the current user," which requires one extra join in the policy logic.
+- **Every table needs its own rule, including join tables.** The `outfit_slots` table (which links outfits to items) doesn't have a user ID on it. The rule has to say "only allow access if the outfit this slot belongs to is owned by the current user," which requires one extra join in the policy logic. On a later review pass I tightened this further: writes now also check that the linked wishlist item is owned by the same user, so a slot can't reference someone else's item even if the parent outfit is yours.
 
 ### Keeping uploaded images private
 The easy approach for image storage is a public bucket, where every image gets a permanent URL that anyone can visit. I used a private bucket instead, which means images are only accessible if the server explicitly authorises the request.
@@ -194,7 +194,7 @@ supabase/
 
 A quick checklist of what's enforced (the reasoning behind each is in [What I learned](#what-i-learned-building-this) above):
 
-- **Row Level Security** on all tables, so users can only ever access their own data
+- **Row Level Security** is enabled on every user-owned table, with policies that scope access to the authenticated owner (`auth.uid() = user_id`). Join-table writes additionally verify that linked rows are owned by the same user
 - **Private image storage:** uploaded images sit in a private bucket and are only reachable via short-lived signed URLs generated server-side
 - **No service role key** in browser code; the app uses only the public anon key
 - **`.env.local` is git-ignored**

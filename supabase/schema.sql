@@ -60,6 +60,9 @@ CREATE TABLE IF NOT EXISTS outfit_slots (
 
 ALTER TABLE outfit_slots ENABLE ROW LEVEL SECURITY;
 
+-- Reads: only require that the parent outfit is owned by the user.
+-- Writes: additionally require that wishlist_item_id is null or points to an
+-- item the user owns, so slots can't reference another user's items.
 CREATE POLICY "Users manage slots for their own outfits"
   ON outfit_slots FOR ALL
   USING (
@@ -74,6 +77,14 @@ CREATE POLICY "Users manage slots for their own outfits"
       SELECT 1 FROM outfits
       WHERE outfits.id = outfit_slots.outfit_id
       AND outfits.user_id = auth.uid()
+    )
+    AND (
+      wishlist_item_id IS NULL
+      OR EXISTS (
+        SELECT 1 FROM wishlist_items
+        WHERE wishlist_items.id = outfit_slots.wishlist_item_id
+        AND wishlist_items.user_id = auth.uid()
+      )
     )
   );
 
