@@ -1,4 +1,4 @@
-# Glowbook — Product Requirements (MVP)
+# Glowbook: Product Requirements (MVP)
 
 ## What is Glowbook?
 Glowbook is a personal Wardrobe & Beauty app. The first MVP is focused entirely on wardrobe.
@@ -11,7 +11,7 @@ Glowbook is a personal Wardrobe & Beauty app. The first MVP is focused entirely 
 - View, edit, and delete saved outfits
 
 ## Out of scope (for now)
-- Beauty features (skincare, makeup, etc.) — may be added in a future phase
+- Beauty features (skincare, makeup, etc.), may be added in a future phase
 - Social and sharing features
 - Native mobile app (responsive styles are in place; a dedicated mobile app is out of scope)
 
@@ -27,13 +27,13 @@ Glowbook is a personal Wardrobe & Beauty app. The first MVP is focused entirely 
 - Hosting: Vercel (auto-deploys from `main`), available at https://glowbook-self.vercel.app
 
 ## Key data model
-- `wishlist_items` — saved fashion items with metadata and image
-- `outfits` — named outfit collections owned by a user
-- `outfit_slots` — links an outfit to specific wishlist items by category slot
+- `wishlist_items`: saved fashion items with metadata and image
+- `outfits`: named outfit collections owned by a user
+- `outfit_slots`: links an outfit to specific wishlist items by category slot
 
 ## Image handling
 - Scraped retailer images: stored as external URLs, displayed directly
 - Uploaded images: stored in Supabase Storage (`item-images`), path saved in DB, signed URLs generated at display time
 
 ## User
-- Single personal user (the owner). No multi-tenancy needed, but RLS is still enforced for security.
+- Built as a personal app for a single owner, but implemented with real multi-user boundaries (Supabase Auth plus per-user RLS on every table) to practice production-style security rather than relying on "it's just me."

@@ -199,7 +199,19 @@ A quick checklist of what's enforced (the reasoning behind each is in [What I le
 - **Private image storage:** uploaded images sit in a private bucket and are only reachable via short-lived signed URLs generated server-side
 - **No service role key** in browser code; the app uses only the public anon key
 - **`.env.local` is git-ignored**
-- **SSRF protection** on the scrape endpoint: user-supplied URLs are validated before every fetch (and every redirect hop). Non-http(s) schemes are rejected, the hostname is resolved to its IP, and any private, loopback, or link-local address is blocked across IPv4, IPv6, and IPv4-mapped IPv6. Residual risk: DNS rebinding can't be fully closed at the app layer and is accepted for a personal app.
+- **SSRF protection** on the scrape endpoint: user-supplied URLs are validated before every fetch (and every redirect hop). Non-http(s) schemes are rejected, the hostname is resolved to its IP, and any private, loopback, or link-local address is blocked across IPv4, IPv6, and IPv4-mapped IPv6. The response is restricted to HTML and capped at 2 MB. Residual risk: DNS rebinding can't be fully closed at the app layer and is accepted for a personal app.
+
+---
+
+## Known limitations
+
+This is a personal app, and I've been deliberate about what I did and didn't harden. Things a production version would need that this doesn't have:
+
+- **No rate limiting** on any endpoint, including the scraper.
+- **Residual DNS rebinding risk** on the scrape endpoint, as noted above. Fully closing it needs network-level egress controls, not application code.
+- **Upload validation checks MIME type and size, not file contents.** The MIME type comes from the browser and isn't independently verified (e.g. by inspecting magic bytes), so it shouldn't be treated as strong file-type validation. Files are stored under a random UUID name with an extension derived from the declared type.
+- **No API route integration tests yet.** The unit tests cover validation and the SSRF guard; testing the routes end-to-end needs a live test database, which I haven't set up.
+- **The SSRF guard blocks the common private ranges, not every special-use range.** It covers RFC 1918, loopback, and link-local; ranges like carrier-grade NAT (`100.64/8`) are out of scope for this demo.
 
 ---
 
@@ -216,7 +228,7 @@ npm test
 | `src/lib/__tests__/ssrf-guard.test.ts` | `isPrivateAddress` (IPv4, IPv6, and IPv4-mapped IPv6 ranges), scheme rejection, private-IP-in-URL rejection, malformed URLs |
 | `src/lib/__tests__/schemas.test.ts` | Every zod schema: required fields, enum validation, partial updates, slot UUID checks, file type/size rules |
 
-API route integration tests (routes that call Supabase) are not yet written. Those require a live database and will be added once the migration workflow is in place.
+API route integration tests (routes that call Supabase) are not yet written; see [Known limitations](#known-limitations).
 
 ---
 
