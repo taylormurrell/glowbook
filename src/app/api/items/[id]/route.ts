@@ -22,7 +22,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     .eq('user_id', user.id)
     .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 404 })
+  if (error) return Response.json({ error: 'Item not found.' }, { status: 404 })
   return Response.json(data)
 }
 
@@ -50,7 +50,10 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     .select()
     .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('items PUT: db error', error)
+    return Response.json({ error: 'Unable to update item.' }, { status: 500 })
+  }
   return Response.json(data)
 }
 
@@ -71,6 +74,9 @@ export async function DELETE(_req: NextRequest, { params }: Ctx) {
     .eq('id', id)
     .eq('user_id', user.id)
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('items DELETE: db error', error)
+    return Response.json({ error: 'Unable to delete item.' }, { status: 500 })
+  }
   return new Response(null, { status: 204 })
 }

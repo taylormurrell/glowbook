@@ -13,7 +13,10 @@ export async function GET() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('items GET: db error', error)
+    return Response.json({ error: 'Unable to load items.' }, { status: 500 })
+  }
 
   const resolved = await Promise.all(data.map(async (item) => {
     if (item.image_source === 'uploaded_file' && item.image_url) {
@@ -43,6 +46,9 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('items POST: db error', error)
+    return Response.json({ error: 'Unable to save item.' }, { status: 500 })
+  }
   return Response.json(data, { status: 201 })
 }

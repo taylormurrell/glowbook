@@ -13,7 +13,10 @@ export async function GET() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error('outfits GET: db error', error)
+    return Response.json({ error: 'Unable to load outfits.' }, { status: 500 })
+  }
   return Response.json(data)
 }
 
@@ -35,7 +38,10 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
 
-  if (outfitError) return Response.json({ error: outfitError.message }, { status: 500 })
+  if (outfitError) {
+    console.error('outfits POST: db error', outfitError)
+    return Response.json({ error: 'Unable to save outfit.' }, { status: 500 })
+  }
 
   const slotRows = slots
     .filter((s) => s.wishlist_item_id)
@@ -48,7 +54,10 @@ export async function POST(request: NextRequest) {
 
   if (slotRows.length > 0) {
     const { error: slotsError } = await supabase.from('outfit_slots').insert(slotRows)
-    if (slotsError) return Response.json({ error: slotsError.message }, { status: 500 })
+    if (slotsError) {
+      console.error('outfits POST: slots db error', slotsError)
+      return Response.json({ error: 'Unable to save outfit.' }, { status: 500 })
+    }
   }
 
   return Response.json(outfit, { status: 201 })

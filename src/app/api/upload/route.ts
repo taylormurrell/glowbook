@@ -2,6 +2,16 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { UploadFileSchema } from '@/lib/schemas'
 
+// Derive the extension from the validated MIME type, not the user-supplied
+// filename, so the stored name never carries attacker-controlled input.
+const EXT_BY_TYPE: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/jpg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+}
+
 export async function POST(request: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -16,15 +26,18 @@ export async function POST(request: NextRequest) {
   }
 
   const file = parsed.data.file as File
-  const ext = file.name.split('.').pop() ?? 'jpg'
-  const path = `${user.id}/${Date.now()}.${ext}`
+  const ext = EXT_BY_TYPE[file.type] ?? 'bin'
+  const path = `${user.id}/${crypto.randomUUID()}.${ext}`
   const bytes = await file.arrayBuffer()
 
   const { error: uploadError } = await supabase.storage
     .from('item-images')
     .upload(path, bytes, { contentType: file.type, upsert: false })
 
-  if (uploadError) return Response.json({ error: uploadError.message }, { status: 500 })
+  if (uploadError) {
+    console.error('upload: storage error', uploadError)
+    return Response.json({ error: 'Unable to upload image.' }, { status: 500 })
+  }
 
   const { data: signed } = await supabase.storage
     .from('item-images')
