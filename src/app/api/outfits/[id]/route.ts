@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { UpdateOutfitSchema, UuidParamSchema, type UpdateOutfitInput } from '@/lib/schemas'
+import { resolveOutfitSlotImages } from '@/lib/resolve-images'
+import type { Outfit } from '@/lib/types'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -23,7 +25,9 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     .single()
 
   if (error) return Response.json({ error: 'Outfit not found.' }, { status: 404 })
-  return Response.json(data)
+
+  const resolved = await resolveOutfitSlotImages(supabase, data as Outfit)
+  return Response.json(resolved)
 }
 
 export async function PUT(request: NextRequest, { params }: Ctx) {
@@ -57,8 +61,15 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     return Response.json({ error: 'Unable to update outfit.' }, { status: 500 })
   }
 
-  // Replace all slots
-  await supabase.from('outfit_slots').delete().eq('outfit_id', id)
+  // Replace all slots. Note: this is not atomic (see README "Known
+  // limitations"); a failed insert after a successful delete can leave the
+  // outfit with no slots. We at least surface either failure rather than
+  // swallowing it.
+  const { error: deleteError } = await supabase.from('outfit_slots').delete().eq('outfit_id', id)
+  if (deleteError) {
+    console.error('outfits PUT: slot delete error', deleteError)
+    return Response.json({ error: 'Unable to update outfit.' }, { status: 500 })
+  }
 
   const slotRows = slots
     .filter((s) => s.wishlist_item_id)
@@ -70,7 +81,11 @@ export async function PUT(request: NextRequest, { params }: Ctx) {
     }))
 
   if (slotRows.length > 0) {
-    await supabase.from('outfit_slots').insert(slotRows)
+    const { error: slotsError } = await supabase.from('outfit_slots').insert(slotRows)
+    if (slotsError) {
+      console.error('outfits PUT: slot insert error', slotsError)
+      return Response.json({ error: 'Unable to update outfit.' }, { status: 500 })
+    }
   }
 
   return Response.json(outfit)

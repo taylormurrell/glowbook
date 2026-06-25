@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { CreateOutfitSchema, type CreateOutfitInput } from '@/lib/schemas'
+import { resolveOutfitSlotImages } from '@/lib/resolve-images'
+import type { Outfit } from '@/lib/types'
 
 export async function GET() {
   const supabase = await createClient()
@@ -17,7 +19,9 @@ export async function GET() {
     console.error('outfits GET: db error', error)
     return Response.json({ error: 'Unable to load outfits.' }, { status: 500 })
   }
-  return Response.json(data)
+
+  const resolved = await Promise.all((data ?? []).map(o => resolveOutfitSlotImages(supabase, o as Outfit)))
+  return Response.json(resolved)
 }
 
 export async function POST(request: NextRequest) {
