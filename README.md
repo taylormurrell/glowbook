@@ -199,6 +199,7 @@ A quick checklist of what's enforced (the reasoning behind each is in [What I le
 - **Private image storage:** uploaded images sit in a private bucket and are only reachable via short-lived signed URLs generated server-side
 - **No service role key** in browser code; the app uses only the public anon key
 - **`.env.local` is git-ignored**
+- **Security response headers** set in `next.config.ts`: a Content-Security-Policy plus `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy`. These reduce clickjacking, MIME-sniffing, and content-injection risk. HSTS is provided by the host (Vercel)
 - **SSRF protection** on the scrape endpoint: user-supplied URLs are validated before every fetch (and every redirect hop). Non-http(s) schemes are rejected, the hostname is resolved to its IP, and any private, loopback, or link-local address is blocked across IPv4, IPv6, and IPv4-mapped IPv6. The response is restricted to HTML and capped at 2 MB. Residual risk: DNS rebinding can't be fully closed at the app layer and is accepted for a personal app.
 
 ---
@@ -212,6 +213,7 @@ This is a personal app, and I've been deliberate about what I did and didn't har
 - **Upload validation checks MIME type and size, not file contents.** The MIME type comes from the browser and isn't independently verified (e.g. by inspecting magic bytes), so it shouldn't be treated as strong file-type validation. Files are stored under a random UUID name with an extension derived from the declared type.
 - **No API route integration tests yet.** The unit tests cover validation and the SSRF guard; testing the routes end-to-end needs a live test database, which I haven't set up.
 - **The SSRF guard blocks the common private ranges, not every special-use range.** It covers RFC 1918, loopback, and link-local; ranges like carrier-grade NAT (`100.64/8`) and documentation/test networks are out of scope for this demo. The guard targets internal-network access, not every non-public address.
+- **The CSP uses `'unsafe-inline'` for scripts and styles.** This is the documented static-CSP approach for Next.js. A stricter nonce-based policy would block inline injection more completely but requires fully dynamic rendering (no static optimization or CDN caching), which isn't a worthwhile tradeoff here. `img-src` also allows any `https:` source because scraped product images come from arbitrary retailer CDNs.
 - **Outfit updates are not atomic.** Editing an outfit deletes its existing slots and inserts the new ones as separate statements rather than in a transaction. Both failure paths are now checked and surfaced as errors, but if the insert failed after the delete, the outfit could be left with no slots. A production version would wrap this in a Postgres function/RPC transaction.
 
 ---
