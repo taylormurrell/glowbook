@@ -86,12 +86,13 @@ SSRF, or Server-Side Request Forgery, is an attack where someone tricks your ser
 
 In this case, the scrape feature takes a URL from the user and fetches it from the server. Without any checks, someone could submit something like `http://169.254.169.254`, an internal AWS address that returns server credentials, and the server would happily fetch it.
 
-The fix works in a few layers:
+The guard reduces the main SSRF risks in a few layers:
 - **Reject non-web URLs immediately.** Only `http://` and `https://` are allowed.
 - **Resolve the domain to its real IP address before fetching.** A domain that looks innocent might actually point to an internal address. Checking the URL string isn't enough; you have to check where it actually resolves to.
 - **Re-validate on every redirect.** A URL can redirect to a different URL, so each hop is checked independently.
+- **Only parse HTML, and cap how much gets read.** The response has to be an HTML content type, and the body is read up to a 2 MB limit so a huge or hostile page can't exhaust server memory.
 
-One known limitation is DNS rebinding, where a domain resolves to a safe address at check time but switches to an internal one by the time the actual request is made. This can't be fully prevented at the app layer and would require network-level controls. It's noted in the security section as an accepted residual risk for a personal app.
+It reduces these risks rather than eliminating them. One known limitation is DNS rebinding, where a domain resolves to a safe address at check time but switches to an internal one by the time the actual request is made. That can't be fully prevented at the app layer and would require network-level controls. I also haven't added rate limiting. Both are noted under Known limitations as accepted tradeoffs for a personal demo.
 
 ### Why there are two schema files
 The database setup lives in two places, and that's deliberate.

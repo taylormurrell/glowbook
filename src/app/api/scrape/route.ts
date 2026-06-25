@@ -28,7 +28,17 @@ export async function POST(request: NextRequest) {
       return Response.json(buildEmpty(), { status: 200 })
     }
 
-    const html = await res.text()
+    // Only parse HTML, and cap the amount we read so a huge or hostile
+    // response can't exhaust server memory.
+    const contentType = res.headers.get('content-type') ?? ''
+    if (!contentType.includes('text/html') && !contentType.includes('application/xhtml')) {
+      return Response.json(buildEmpty(), { status: 200 })
+    }
+
+    const html = await readCapped(res, MAX_HTML_BYTES)
+    if (html === null) {
+      return Response.json(buildEmpty(), { status: 200 })
+    }
     const $ = cheerio.load(html)
 
     const result: ScrapeResult = {
@@ -89,6 +99,39 @@ export async function POST(request: NextRequest) {
   } catch {
     return Response.json(buildEmpty(), { status: 200 })
   }
+}
+
+const MAX_HTML_BYTES = 2_000_000 // 2 MB cap on scraped HTML
+
+// Read a response body up to `limit` bytes. Returns null if the body exceeds
+// the cap (we'd rather return nothing than buffer an unbounded response).
+async function readCapped(res: Response, limit: number): Promise<string | null> {
+  const reader = res.body?.getReader()
+  if (!reader) return null
+
+  const chunks: Uint8Array[] = []
+  let total = 0
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.length
+    if (total > limit) {
+      await reader.cancel()
+      return null
+    }
+    chunks.push(value)
+  }
+  return new TextDecoder().decode(concatChunks(chunks, total))
+}
+
+function concatChunks(chunks: Uint8Array[], total: number): Uint8Array {
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.length
+  }
+  return out
 }
 
 const FETCH_HEADERS = {
