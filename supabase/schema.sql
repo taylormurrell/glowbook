@@ -29,8 +29,8 @@ ALTER TABLE wishlist_items ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users manage their own wishlist items"
   ON wishlist_items FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 -- Outfits
 CREATE TABLE IF NOT EXISTS outfits (
@@ -46,8 +46,8 @@ ALTER TABLE outfits ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users manage their own outfits"
   ON outfits FOR ALL
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+  USING ((select auth.uid()) = user_id)
+  WITH CHECK ((select auth.uid()) = user_id);
 
 -- Outfit Slots
 CREATE TABLE IF NOT EXISTS outfit_slots (
@@ -74,21 +74,21 @@ CREATE POLICY "Users manage slots for their own outfits"
     EXISTS (
       SELECT 1 FROM outfits
       WHERE outfits.id = outfit_slots.outfit_id
-      AND outfits.user_id = auth.uid()
+      AND outfits.user_id = (select auth.uid())
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM outfits
       WHERE outfits.id = outfit_slots.outfit_id
-      AND outfits.user_id = auth.uid()
+      AND outfits.user_id = (select auth.uid())
     )
     AND (
       wishlist_item_id IS NULL
       OR EXISTS (
         SELECT 1 FROM wishlist_items
         WHERE wishlist_items.id = outfit_slots.wishlist_item_id
-        AND wishlist_items.user_id = auth.uid()
+        AND wishlist_items.user_id = (select auth.uid())
       )
     )
   );
@@ -131,7 +131,7 @@ CREATE POLICY "Users upload to own folder"
   TO authenticated
   WITH CHECK (
     bucket_id = 'item-images' AND
-    auth.uid()::text = (storage.foldername(name))[1]
+    (select auth.uid())::text = (storage.foldername(name))[1]
   );
 
 DROP POLICY IF EXISTS "Users read own images" ON storage.objects;
@@ -140,7 +140,7 @@ CREATE POLICY "Users read own images"
   TO authenticated
   USING (
     bucket_id = 'item-images' AND
-    auth.uid()::text = (storage.foldername(name))[1]
+    (select auth.uid())::text = (storage.foldername(name))[1]
   );
 
 DROP POLICY IF EXISTS "Users delete own images" ON storage.objects;
@@ -149,5 +149,5 @@ CREATE POLICY "Users delete own images"
   TO authenticated
   USING (
     bucket_id = 'item-images' AND
-    auth.uid()::text = (storage.foldername(name))[1]
+    (select auth.uid())::text = (storage.foldername(name))[1]
   );
