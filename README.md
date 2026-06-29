@@ -51,7 +51,7 @@ Glowbook is a personal wardrobe and outfit-planning app. It lets users save fash
 ## Architecture
 
 - **Frontend:** Next.js App Router (a mix of server and client components)
-- **Auth:** Supabase Auth with cookie-based SSR sessions, refreshed and enforced in `src/proxy.ts` middleware
+- **Auth:** Supabase Auth with SSR cookie sessions, protected in `src/proxy.ts` and re-checked in the authenticated layout
 - **Data:** Supabase Postgres, with all user-owned data protected by Row Level Security
 - **Storage:** Supabase Storage (private `item-images` bucket) for uploaded photos, served via signed URLs
 - **Server logic:** API routes handle scraping, uploads, and writes; server components read from Supabase directly
@@ -67,11 +67,12 @@ Glowbook uses layered controls rather than relying on one setting:
 | Authentication | Supabase Auth with SSR cookie sessions | Identifies the user before any access rule is applied |
 | Authorization | RLS policies using `(select auth.uid()) = user_id` | Enforces user-owned data access in the database itself |
 | Table access | `GRANT` to the `authenticated` role only | Controls whether API roles can reach a table at all; blocks anonymous access |
-| Input validation | Zod schemas on every API route | Rejects malformed or unexpected request bodies before they hit the database |
+| Input validation | Zod schemas on every API route (request bodies and route params) | Rejects malformed or unexpected input before it reaches the database |
 | Secrets | anon key only in the browser; `service_role` never client-side; `.env.local` git-ignored | The public key is safe because RLS protects the data; the privileged key stays server-side |
 | Image storage | Private `item-images` bucket with short-lived signed URLs | Avoids permanent public links for uploaded images |
 | Scraper protection | SSRF guard on user-submitted URLs | Blocks non-http(s), internal/private IPs, redirect bypasses, and oversized responses |
 | Browser hardening | Security headers in `next.config.ts` (CSP, X-Frame-Options, etc.) | Reduces clickjacking, MIME-sniffing, and content-injection risk |
+| Error handling | Generic client errors with server-side logging | Avoids exposing backend details while preserving debugging information |
 
 For the reasoning and tradeoffs behind each decision, see [`docs/security-notes.md`](docs/security-notes.md).
 
