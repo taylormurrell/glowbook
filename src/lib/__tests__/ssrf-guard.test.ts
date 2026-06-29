@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { validateScrapeUrl, isPrivateAddress, SsrfError } from '../ssrf-guard'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { validateScrapeUrl, safeFetch, isPrivateAddress, SsrfError } from '../ssrf-guard'
 
 describe('isPrivateAddress', () => {
   it('flags IPv4 private ranges', () => {
@@ -60,5 +60,41 @@ describe('validateScrapeUrl', () => {
   it('rejects malformed URLs', async () => {
     await expect(validateScrapeUrl('not-a-url')).rejects.toThrow(SsrfError)
     await expect(validateScrapeUrl('')).rejects.toThrow(SsrfError)
+  })
+})
+
+describe('safeFetch (redirect handling)', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  // Minimal Response stand-in: safeFetch only reads .status and .headers.get('location').
+  // Redirect targets use literal IPs so validateScrapeUrl resolves them without network DNS.
+  function fakeResponse(status: number, location?: string | null): Response {
+    return {
+      status,
+      ok: status >= 200 && status < 300,
+      headers: { get: (k: string) => (k.toLowerCase() === 'location' ? location ?? null : null) },
+    } as unknown as Response
+  }
+
+  it('rejects a redirect that points at an internal address', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(fakeResponse(302, 'http://10.0.0.1/')))
+    await expect(safeFetch('http://93.184.216.34/')).rejects.toThrow(SsrfError)
+  })
+
+  it('follows a redirect to a public address and returns the final response', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(fakeResponse(302, 'http://93.184.216.34/final'))
+      .mockResolvedValueOnce(fakeResponse(200))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const res = await safeFetch('http://93.184.216.34/')
+    expect(res.status).toBe(200)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('returns the response when a redirect has no location header', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(fakeResponse(302, null)))
+    const res = await safeFetch('http://93.184.216.34/')
+    expect(res.status).toBe(302)
   })
 })

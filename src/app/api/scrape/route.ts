@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import * as cheerio from 'cheerio'
 import type { ScrapeResult } from '@/lib/types'
-import { validateScrapeUrl, SsrfError } from '@/lib/ssrf-guard'
+import { validateScrapeUrl, safeFetch, SsrfError } from '@/lib/ssrf-guard'
 import { ScrapeSchema } from '@/lib/schemas'
 
 export async function POST(request: NextRequest) {
@@ -132,39 +132,6 @@ function concatChunks(chunks: Uint8Array[], total: number): Uint8Array {
     offset += chunk.length
   }
   return out
-}
-
-const FETCH_HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.5',
-}
-
-async function safeFetch(startUrl: string, maxRedirects = 5): Promise<Response> {
-  let url = startUrl
-
-  for (let i = 0; i <= maxRedirects; i++) {
-    const res = await fetch(url, {
-      redirect: 'manual',
-      headers: FETCH_HEADERS,
-      signal: AbortSignal.timeout(10000),
-    })
-
-    if (res.status >= 300 && res.status < 400) {
-      if (i === maxRedirects) throw new Error('Too many redirects')
-      const location = res.headers.get('location')
-      if (!location) return res
-      const next = new URL(location, url).href
-      // Re-validate each redirect target to block open-redirect to internal hosts
-      await validateScrapeUrl(next)
-      url = next
-      continue
-    }
-
-    return res
-  }
-
-  throw new Error('Too many redirects')
 }
 
 function buildEmpty(): ScrapeResult {

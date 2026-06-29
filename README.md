@@ -97,7 +97,7 @@ This is a personal app, and I've been deliberate about what I did and didn't har
 npm test
 ```
 
-Unit tests (Vitest) cover the two layers most likely to hide subtle bugs: the SSRF guard (`isPrivateAddress` across IPv4, IPv6, and IPv4-mapped IPv6 ranges, scheme and redirect rejection) and the Zod input schemas (required fields, enums, file type/size rules). CI runs lint, typecheck, and tests on every push.
+Unit tests (Vitest) cover the two layers most likely to hide subtle bugs: the SSRF guard (`isPrivateAddress` across IPv4, IPv6, and IPv4-mapped IPv6 ranges, plus scheme, private-IP, and redirect-target rejection) and the Zod input schemas (required fields, enums, file type/size rules). CI runs lint, typecheck, and tests on every push.
 
 ---
 

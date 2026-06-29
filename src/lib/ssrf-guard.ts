@@ -34,6 +34,41 @@ export async function validateScrapeUrl(rawUrl: string): Promise<void> {
   }
 }
 
+const FETCH_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.5',
+}
+
+// Fetch a URL while following redirects manually, re-validating every hop so a
+// public URL can't redirect to an internal address. Throws SsrfError if any
+// hop's target fails validation.
+export async function safeFetch(startUrl: string, maxRedirects = 5): Promise<Response> {
+  let url = startUrl
+
+  for (let i = 0; i <= maxRedirects; i++) {
+    const res = await fetch(url, {
+      redirect: 'manual',
+      headers: FETCH_HEADERS,
+      signal: AbortSignal.timeout(10000),
+    })
+
+    if (res.status >= 300 && res.status < 400) {
+      if (i === maxRedirects) throw new Error('Too many redirects')
+      const location = res.headers.get('location')
+      if (!location) return res
+      const next = new URL(location, url).href
+      await validateScrapeUrl(next)
+      url = next
+      continue
+    }
+
+    return res
+  }
+
+  throw new Error('Too many redirects')
+}
+
 export function isPrivateAddress(ip: string): boolean {
   // IPv6 checks
   const lower = ip.toLowerCase()
